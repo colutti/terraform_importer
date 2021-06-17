@@ -37,4 +37,4 @@ python3 import.py --plan <plan_name>.json --subscription <your_subscription_id> 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
-[MIT](htps://choosealicense.com/licenses/mit/)
+[MIT](hts://choosealicense.com/licenses/mit/)
