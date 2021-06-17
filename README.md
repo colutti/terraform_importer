@@ -1,6 +1,6 @@
 # Terraform Azure Importer
 
-Terraform Azure Importer is a small script that import existing Azure resources into Terraform's state when the resources were created without using Terraform
+Terraform Azure Importer is a small script to import existing Azure resources into Terraform's state when the resources were created outside of Terraform
 
 ## Installation
 
