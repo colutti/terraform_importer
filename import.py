@@ -28,7 +28,7 @@ from azure.identity import AzureCliCredential
 from azure.mgmt.compute import ComputeManagementClient
 
 
-def __virtual_machine(vm):
+def azurerm_virtual_machine(vm):
     """
         Given a vm change in terraform, it returns a command to import the VM
     """
@@ -40,7 +40,7 @@ def __virtual_machine(vm):
     return import_command
 
 
-def __managed_disk(managed_disk):
+def azurerm_managed_disk(managed_disk):
     """
         Given a managed disk change in terraform, it returns a command to import the disk
     """
@@ -52,7 +52,7 @@ def __managed_disk(managed_disk):
     return import_command
 
 
-def __vm_extensions(vm_extension):
+def azurerm_virtual_machine_extension(vm_extension):
     """
         Given a virtual machine extension in terraform, it returns a command to import the extension
     """
@@ -68,23 +68,18 @@ def import_resources(plan):
         Main function. Given a terraform json plan, it tries to import existing resources
     """
     for i in plan["resource_changes"]:
-        import_command = None
+
         if i["change"]["actions"][0] == "create":
+            try:
+                type = i["type"]
+                import_command = eval(type)(i)
+                print(import_command, "\n")
+            except:
+                print("Importing type {} not implemented yet".format(type))
+                continue
 
-            if i["type"] == "azurerm_virtual_machine":
-                import_command = __virtual_machine(i)
-
-            if i["type"] == "azurerm_managed_disk":
-                import_command = __managed_disk(i)
-
-            if i["type"] == "azurerm_virtual_machine_extension":
-                import_command = __vm_extensions(i)
-
-        if import_command:
-            print(import_command, "\n")
             if args.apply:
                 subprocess.run(f"{import_command}", shell=True)
-
 
 def __get_vm_id(vm_name, resource_group):
     """
