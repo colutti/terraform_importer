@@ -81,6 +81,7 @@ def import_resources(plan):
             if args.apply:
                 subprocess.run(f"{import_command}", shell=True)
 
+
 def __get_vm_id(vm_name, resource_group):
     """
         Given a resource group and a vm name, it returns the Azure ID of the VM
