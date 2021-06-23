@@ -11,6 +11,7 @@ Just clone this repository or download it.
 ```bash
 pip3 install azure.mgmt.compute
 pip3 install azure.identity
+pip3 install chardet
 ```
 
 ## Usage

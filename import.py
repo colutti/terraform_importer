@@ -19,11 +19,13 @@
 
                 - python3 import.py --plan <plan_name>.json --subscription <your_subscription_id> --apply
 """
+import argparse
 import json
 import subprocess
-import argparse
-from azure.mgmt.compute import ComputeManagementClient
+
+import chardet
 from azure.identity import AzureCliCredential
+from azure.mgmt.compute import ComputeManagementClient
 
 
 def __virtual_machine(vm):
@@ -40,14 +42,35 @@ def __virtual_machine(vm):
 
 def __managed_disk(managed_disk):
     """
-        Given a managed disk change in terraform, it returns a command to import the VM
+        Given a managed disk change in terraform, it returns a command to import the disk
     """
     address = managed_disk["address"]
-    name = managed_disk["change"]["after"]["name"]
     resource_group = managed_disk["change"]["after"]["resource_group_name"]
     managed_disk_id = __get_disk_id(name, resource_group)
     import_command = "terraform import {} {}".format(address, managed_disk_id)
     return import_command
+
+
+def __vm_extensions(vm_extension):
+    """
+        Given a virtual machine extension in terraform, it returns a command to import the extension
+    """
+    virtual_machine_id = vm_extension["change"]["after"]["virtual_machine_id"]
+    address = vm_extension["address"]
+    name = vm_extension["change"]["after"]["name"]
+    import_command = "terraform import {} {}{}{}".format(address, virtual_machine_id, "/extensions/", name)
+    return import_command
+
+
+def __get_vm_hostname_by_id(vm_id):
+    """
+        Given a virtual machine id, it returns the vm hostname
+    """
+    compute_client = __get_azure_credentials()
+    vms_azure = compute_client.virtual_machines.list_all()
+    for vm in vms_azure:
+        if vm.id == vm_id:
+            return vm.name 
 
 
 def import_resources(plan):
@@ -64,6 +87,9 @@ def import_resources(plan):
             if i["type"] == "azurerm_managed_disk":
                 import_command = __managed_disk(i)
 
+            if i["type"] == "azurerm_virtual_machine_extension":
+                import_command = __vm_extensions(i)
+
         if import_command:
             print(import_command)
             if args.apply:
@@ -76,6 +102,7 @@ def __get_vm_id(vm_name, resource_group):
     """
     compute_client = __get_azure_credentials()
     vm_azure = compute_client.virtual_machines.get(resource_group, vm_name)
+    compute_client.virtual_machines.get()
     return vm_azure.id
 
 
@@ -98,6 +125,15 @@ def __get_disk_id(disk_name, resource_group):
     return managed_disk.id
 
 
+def __get_file_encoding(file_name):
+    """
+        Given a file path, returns the encoding of the file (utf, ascii, etc)
+    """
+    rawdata = open(file_name, "rb").read()
+    result = chardet.detect(rawdata)
+    return result['encoding']
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Terraform import - Azure')
     parser.add_argument('--plan', required=True)
@@ -105,7 +141,9 @@ if __name__ == "__main__":
     parser.add_argument('--apply', default=False, action="store_true")
     args = parser.parse_args()
 
-    with open(args.plan) as f:
+    charenc = __get_file_encoding(args.plan)
+
+    with open(args.plan, encoding=charenc) as f:
         plan = json.loads(f.read())
 
     import_resources(plan)
