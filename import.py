@@ -101,7 +101,7 @@ def __import(plan):
 def __create(plan):
     address = plan["address"]
     if args.module is not None and args.module in address:
-        create_command = f"terraform apply --target={address}"
+        create_command = f"terraform apply --target={address} -auto-approve"
         print(create_command, "\n")
         try:
             if args.apply:
