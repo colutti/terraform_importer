@@ -3,7 +3,8 @@
     Author: Rafael Colucci
     Contact: rafacolucci@gmail.com
 
-    This is a small utility that make it easier to import existing Azure Resources in Terraform
+    This is a small utility that make it easier to import existing
+    Azure Resources in Terraform
     It only works for a few resources, but it should be easy to extend it
 
     Before using this script you need to execute:
@@ -13,11 +14,17 @@
 
     After convering the plan to json, just call this script as follow:
 
-        - python3 import.py --plan <plan_name>.json --subscription <your_subscription_id>
+        - python3 import.py
+                    --plan <plan_name>.json
+                    --subscription <your_subscription_id>
 
-            Note: if you wish to execute the import automatically, you can use the parameter apply:
+            Note: if you wish to execute the import automatically,
+            you can use the parameter apply:
 
-                - python3 import.py --plan <plan_name>.json --subscription <your_subscription_id> --apply
+                - python3 import.py
+                    --plan <plan_name>.json
+                    --subscription <your_subscription_id>
+                    --apply
 """
 import argparse
 import json
@@ -43,7 +50,8 @@ def azurerm_virtual_machine(vm):
 
 def azurerm_managed_disk(managed_disk):
     """
-    Given a managed disk change in terraform, it returns a command to import the disk
+    Given a managed disk change in terraform,
+    it returns a command to import the disk
     """
     address = managed_disk["address"]
     name = managed_disk["change"]["after"]["name"]
@@ -55,7 +63,8 @@ def azurerm_managed_disk(managed_disk):
 
 def azurerm_virtual_machine_extension(vm_extension):
     """
-    Given a virtual machine extension in terraform, it returns a command to import the extension
+    Given a virtual machine extension in terraform,
+    it returns a command to import the extension
     """
     virtual_machine_id = vm_extension["change"]["after"]["virtual_machine_id"]
     address = vm_extension["address"]
@@ -68,32 +77,50 @@ def azurerm_virtual_machine_extension(vm_extension):
 
 def azurerm_resource_group(resource_group):
     """
-    Given a resource group in terraform, it returns a command to import the resource group
+    Given a resource group in terraform,
+    it returns a command to import the resource group
     """
     address = resource_group["address"]
     name = resource_group["change"]["after"]["name"]
     resource_group_id = __get_resource_group_id(name)
-    import_command = "terraform import {} {}".format(address, resource_group_id)
+    import_command = f"terraform import {address} {resource_group_id}"
     return import_command
+
+
+def __import(plan):
+    type = plan["type"]
+    try:
+        import_command = eval(type)(plan)
+        print(import_command, "\n")
+        if args.apply:
+            subprocess.run(f"{import_command}", shell=True)
+    except Exception:
+        print(f"Importing type {type} not implemented yet")
+
+
+def __create(plan):
+    address = plan["address"]
+    if args.module is not None and args.module in address:
+        create_command = f"terraform apply --target={address}"
+        print(create_command, "\n")
+        try:
+            if args.apply:
+                subprocess.run(f"{create_command}", shell=True)
+        except Exception:
+            print(f"Create type {type} not implemented yet")
 
 
 def import_resources(plan):
     """
-    Main function. Given a terraform json plan, it tries to import existing resources
+    Main function. Given a terraform json plan,
+    it tries to import existing resources
     """
     for i in plan["resource_changes"]:
-
         if i["change"]["actions"][0] == "create":
-            try:
-                type = i["type"]
-                import_command = eval(type)(i)
-                print(import_command, "\n")
-            except:
-                print("Importing type {} not implemented yet".format(type))
-                continue
-
-            if args.apply:
-                subprocess.run(f"{import_command}", shell=True)
+            if args.action == "create":
+                __create(i)
+            else:
+                __import(i)
 
 
 def __get_vm_id(vm_name, resource_group):
@@ -102,7 +129,6 @@ def __get_vm_id(vm_name, resource_group):
     """
     compute_client = __get_azure_compute_client()
     vm_azure = compute_client.virtual_machines.get(resource_group, vm_name)
-    compute_client.virtual_machines.get()
     return vm_azure.id
 
 
@@ -137,7 +163,8 @@ def __get_resource_group_id(resource_group):
 
 def __get_disk_id(disk_name, resource_group):
     """
-    Given a resource group and a vm disk name, it returns the Azure ID of the disk
+    Given a resource group and a vm disk name,
+    it returns the Azure ID of the disk
     """
     compute_client = __get_azure_compute_client()
     managed_disk = compute_client.disks.get(resource_group, disk_name)
@@ -157,6 +184,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Terraform import - Azure")
     parser.add_argument("--plan", required=True)
     parser.add_argument("--subscription", required=True)
+    parser.add_argument(
+        "--action", default="import", choices=["import", "create"]
+    )  # noqa
+    parser.add_argument("--module", required=False)
     parser.add_argument("--apply", default=False, action="store_true")
     args = parser.parse_args()
 
