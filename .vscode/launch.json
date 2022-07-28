@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "import.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--plan",
+                "plan.json",
+                "--subscription",
+                "d026c0fd-b9b8-4ff8-a994-8b91c0a12910",
+                "--module",
+                "service_plan"
+            ]
+        }
+    ]
+}
