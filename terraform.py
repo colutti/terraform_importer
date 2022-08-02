@@ -19,9 +19,7 @@ def get_resource_changes(data):
     Returns:
         List of resource_changes
     """
-    if "resource_changes" in data.keys():
-        return data["resource_changes"]
-    return []
+    return data["resource_changes"] if "resource_changes" in data.keys() else []
 
 
 def filter_noop(resources):
@@ -34,25 +32,8 @@ def filter_noop(resources):
         List of resources that are going to be changed
     """
     changes = []
-    for res in resources:
-        if res["change"]["actions"] != ["no-op"]:
-            changes.append(res)
-    return changes
-
-
-def filter_resource_type(resources, resource_type):
-    """
-    Filters by a specific resource type
-    Parses all the resource_changes and cleans out the ones that are not of an specific type
-    Args:
-        data(list): list of resource_changes (output from get_resource_changes)
-    Returns:
-        List of resources that are going to be changed
-    """
-    changes = []
-    for res in resources:
-        if resource_type in res["type"]:
-            changes.append(res)
+    [changes.append(x)
+     for x in resources if x["change"]["actions"] != ["no-op"]]
     return changes
 
 
@@ -128,28 +109,27 @@ def parse_resource(resource):
     Returns:
         Dict with resources attributes
     """
-    item = {
+    return {
         "actions": resource["change"]["actions"],
         "name": calculate_name(resource),
         "address": resource["address"],
         "type": resource["type"],
         "resource_group": calculate_resource_group(resource) if resource["provider_name"] == "registry.terraform.io/hashicorp/azurerm" else ""
     }
-    return item
 
 
-def get_attributes(data):
+def filter_resource_type(resources, resource_type):
     """
-    Get attributes from resource.
+    Filters by a specific resource type
+    Parses all the resource_changes and cleans out the ones that are not of an specific type
     Args:
-        data(list): list of resources
+        data(list): list of resource_changes (output from get_resource_changes)
     Returns:
-        List of resources dict with attributes
+        List of resources that are going to be changed
     """
-    resources = []
-    for res in data:
-        resources.append(parse_resource(res))
-    return resources
+    changes = []
+    [changes.append(x) for x in resources if resource_type in x["type"]]
+    return changes
 
 
 def parse_plan(tfplan, filter_by_resource_type: str = None):
@@ -162,8 +142,8 @@ def parse_plan(tfplan, filter_by_resource_type: str = None):
     """
     all_resources = get_resource_changes(tfplan)
     resource_changing = filter_noop(all_resources)
-    resources = get_attributes(resource_changing)
-    if filter_by_resource_type:
-        resources = filter_resource_type(resources, filter_by_resource_type)
+    resources = [parse_resource(x) for x in resource_changing]
+    resources = filter_resource_type(
+        resources, filter_by_resource_type) if filter_by_resource_type else resources
     resources.sort(key=lambda x: x["name"], reverse=True)
     return resources

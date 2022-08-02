@@ -58,6 +58,9 @@ resource_id_methods = {
 
 
 def get_resource_id(resource_name, subscription_id, resource_type, resource_group=None):
+    """
+    Given a resource name and type, it returns the Azure ID of the resource
+    """
     resource_id_method = resource_id_methods[resource_type] if any(
         resource_type in d for d in resource_id_methods) else None
     return resource_id_method(resource_name, resource_group, subscription_id) if resource_id_method else None
